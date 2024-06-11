@@ -1,0 +1,46 @@
+<input type="file" id="fileInput" />
+<button onclick="uploadFile()">Upload</button>
+<script>
+  async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+    const chunkSize = 1 * 1024 * 1024;
+    const totalChunks = Math.ceil(file.size / chunkSize);
+    const uploadId = `${file.name}-${Date.now()}`;
+
+    const headers = new Headers();
+    headers.append("x-upload-bundle-id", uploadId);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(file.size, start + chunkSize);
+      const chunk = file.slice(start, end);
+
+      const formData = new FormData();
+      formData.append("chunk", chunk);
+      formData.append("chunkNumber", i + 1);
+      formData.append("totalChunks", totalChunks);
+      formData.append("fileName", file.name);
+      formData.append("chunkIndex", i);
+      formData.append("uploadId", uploadId);
+
+      try {
+        const response = await fetch("http://localhost:3000/upload", {
+          method: "POST",
+          body: formData,
+          headers: headers,
+        });
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const result = await response.json();
+        console.log("Chunk upload successful:", result);
+      } catch (error) {
+        console.error("Error uploading chunk:", error);
+        // Handle errors here
+      }
+    }
+  }
+</script>
